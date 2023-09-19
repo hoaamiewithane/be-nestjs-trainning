@@ -1,13 +1,25 @@
 import { Controller } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import { Repository } from 'typeorm';
 import { AppService } from './app.service';
+import { CreateUserDto } from './dto/create-auth.dto';
+import { User } from './entities/user.entity';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
-  @EventPattern('create_user')
-  handleUserCreate(@Payload() data: any) {
-    console.log('data', data);
+  @MessagePattern('get_user')
+  async handleUserCreate(@Payload() data: CreateUserDto) {
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    data.password = hashedPassword;
+    this.userRepository.save(data);
+    return { data };
   }
 }
