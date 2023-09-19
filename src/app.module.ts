@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -21,6 +22,11 @@ import { User } from './entities/user.entity';
       entities: [User],
     }),
     TypeOrmModule.forFeature([User]),
+    JwtModule.register({
+      global: true,
+      secret: process.env.SECRECT_KEY,
+      signOptions: { expiresIn: '60s' },
+    }),
   ],
 
   controllers: [AppController],
