@@ -1,4 +1,5 @@
 import { Controller } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -6,8 +7,12 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { SignInUserDto } from './dto/sign-in-auth.dto';
 import { User } from './entities/user.entity';
-import { JwtService } from '@nestjs/jwt';
 
+interface tokenPayload {
+  sub: number;
+  username: string;
+  role: string;
+}
 @Controller()
 export class AppController {
   constructor(
@@ -41,11 +46,46 @@ export class AppController {
       );
 
       if (passwordMatch) {
-        const payload = { sub: userDB.id, username: userDB.username };
+        const payload = {
+          sub: userDB.id,
+          username: userDB.username,
+          role: userDB.role,
+        };
         return { accessToken: await this.jwtService.signAsync(payload) };
       }
       return { message: 'Wrong password' };
     }
     return { message: 'User does not exist' };
+  }
+
+  @MessagePattern('get_me')
+  async handleGetMe(@Payload() token: string) {
+    const payload = this.jwtService.decode(token) as tokenPayload;
+    const userDB: Partial<User> | null = await this.userRepository.findOneBy({
+      id: payload.sub,
+    });
+    delete userDB?.password;
+    return { data: userDB };
+  }
+
+  @MessagePattern('find_all_user')
+  async findAll() {
+    const data = (await this.userRepository.find()) as Partial<User>[];
+    data?.map((user) => {
+      delete user.password;
+      return user;
+    });
+    return { data };
+  }
+
+  @MessagePattern('find_one_user')
+  async findOne(@Payload() id: number) {
+    const data = (await this.userRepository.findOneBy({
+      id,
+    })) as Partial<User>;
+    delete data.password;
+    return {
+      data,
+    };
   }
 }
