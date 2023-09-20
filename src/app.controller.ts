@@ -1,6 +1,11 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ClientKafka, MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ClientKafka,
+  EventPattern,
+  MessagePattern,
+  Payload,
+} from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
@@ -14,7 +19,7 @@ interface tokenPayload {
   role: string;
 }
 @Controller()
-export class AppController {
+export class AppController implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -52,12 +57,20 @@ export class AppController {
           email: userDB.email,
           role: userDB.role,
         };
+        console.log('zab');
         this.gateWayClient.send('send_mail', data);
+        console.log('sau');
         return { accessToken: await this.jwtService.signAsync(payload) };
       }
       return { message: 'Wrong password' };
     }
     return { message: 'User does not exist' };
+  }
+
+  @EventPattern('sign_in_user2')
+  handleOrderCreated(data: any) {
+    console.log({ data });
+    this.gateWayClient.emit('get_user', 'auth->noti');
   }
 
   @MessagePattern('get_me')
@@ -111,5 +124,8 @@ export class AppController {
     };
 
     return { accessToken: await this.jwtService.signAsync(payload) };
+  }
+  onModuleInit() {
+    this.gateWayClient.subscribeToResponseOf('send_mail');
   }
 }

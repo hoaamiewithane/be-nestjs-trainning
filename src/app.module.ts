@@ -15,11 +15,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         transport: Transport.KAFKA,
         options: {
           client: {
-            clientId: 'auth',
+            clientId: 'noti',
             brokers: [`localhost:9092`],
           },
           consumer: {
-            groupId: 'auth-consumer',
+            groupId: 'noti-consumer',
           },
         },
       },
@@ -41,7 +41,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     JwtModule.register({
       global: true,
       secret: process.env.SECRECT_KEY,
-      signOptions: { expiresIn: '3600s' },
+      signOptions: { expiresIn: 3600 },
     }),
   ],
 
