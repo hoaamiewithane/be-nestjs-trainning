@@ -1,10 +1,10 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { ClientKafka, MessagePattern, Payload } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { CreateUserDto, googleRequest } from './dto/create-auth.dto';
+import { CreateUserDto } from './dto/create-auth.dto';
 import { SignInUserDto } from './dto/sign-in-auth.dto';
 import { User } from './entities/user.entity';
 
@@ -19,6 +19,7 @@ export class AppController {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private jwtService: JwtService,
+    @Inject('NOTI_MICROSERVICE') private readonly gateWayClient: ClientKafka,
   ) {}
 
   @MessagePattern('create_user')
@@ -51,6 +52,7 @@ export class AppController {
           email: userDB.email,
           role: userDB.role,
         };
+        this.gateWayClient.send('send_mail', data);
         return { accessToken: await this.jwtService.signAsync(payload) };
       }
       return { message: 'Wrong password' };
