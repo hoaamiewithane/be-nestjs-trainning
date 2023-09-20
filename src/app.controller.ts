@@ -4,7 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from './dto/create-auth.dto';
+import { CreateUserDto, googleRequest } from './dto/create-auth.dto';
 import { SignInUserDto } from './dto/sign-in-auth.dto';
 import { User } from './entities/user.entity';
 
@@ -37,7 +37,7 @@ export class AppController {
   @MessagePattern('sign_in_user')
   async handleUserLogin(@Payload() data: SignInUserDto) {
     const userDB = await this.userRepository.findOneBy({
-      username: data.username,
+      email: data.email,
     });
     if (userDB) {
       const passwordMatch = await bcrypt.compare(
@@ -48,7 +48,7 @@ export class AppController {
       if (passwordMatch) {
         const payload = {
           sub: userDB.id,
-          username: userDB.username,
+          email: userDB.email,
           role: userDB.role,
         };
         return { accessToken: await this.jwtService.signAsync(payload) };
@@ -87,5 +87,27 @@ export class AppController {
     return {
       data,
     };
+  }
+
+  @MessagePattern('login_with_google')
+  async handleLoginGoogle(@Payload() data: any) {
+    const userDB = await this.userRepository.findOneBy({ email: data.email });
+
+    let ggUser: User;
+
+    if (userDB) {
+      ggUser = userDB;
+    } else {
+      data.role = 'user';
+      ggUser = await this.userRepository.save(data);
+    }
+
+    const payload = {
+      sub: ggUser.id,
+      email: ggUser.email,
+      role: ggUser.role,
+    };
+
+    return { accessToken: await this.jwtService.signAsync(payload) };
   }
 }
