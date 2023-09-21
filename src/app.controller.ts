@@ -25,7 +25,7 @@ export class AppController implements OnModuleInit {
   @MessagePattern('create_user')
   async handleUserCreate(@Payload() data: CreateUserDto) {
     const isExist = await this.userRepository.findOneBy({
-      username: data.username,
+      email: data.email,
     });
     if (isExist) {
       return { message: 'Already have account' };
