@@ -22,6 +22,11 @@ export class AppController implements OnModuleInit {
     @Inject('NOTI_MICROSERVICE') private readonly gateWayClient: ClientKafka,
   ) {}
 
+  async onModuleInit() {
+    await this.gateWayClient.connect();
+    this.gateWayClient.subscribeToResponseOf('send_mail_msg');
+  }
+
   @MessagePattern('create_user')
   async handleUserCreate(@Payload() data: CreateUserDto) {
     const isExist = await this.userRepository.findOneBy({
@@ -41,6 +46,9 @@ export class AppController implements OnModuleInit {
     const userDB = await this.userRepository.findOneBy({
       email: data.email,
     });
+    console.log('api->user');
+    this.gateWayClient.send('send_mail_msg', data);
+    this.gateWayClient.emit('send_mail', data);
     if (userDB) {
       const passwordMatch = await bcrypt.compare(
         data.password,
@@ -111,8 +119,5 @@ export class AppController implements OnModuleInit {
     };
 
     return { accessToken: await this.jwtService.signAsync(payload) };
-  }
-  onModuleInit() {
-    this.gateWayClient.subscribeToResponseOf('send_mail');
   }
 }
