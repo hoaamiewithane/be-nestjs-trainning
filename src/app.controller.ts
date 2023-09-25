@@ -61,7 +61,12 @@ export class AppController implements OnModuleInit {
           email: userDB.email,
           role: userDB.role,
         };
-        return { accessToken: await this.jwtService.signAsync(payload) };
+
+        return {
+          accessToken: await this.jwtService.signAsync(payload),
+          ...userDB,
+          password: undefined,
+        };
       }
       return { message: 'Wrong password' };
     }
