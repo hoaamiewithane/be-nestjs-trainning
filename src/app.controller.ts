@@ -1,4 +1,4 @@
-import { Controller, Inject, OnModuleInit } from '@nestjs/common';
+import { Controller, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ClientKafka, MessagePattern, Payload } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,18 +14,13 @@ interface tokenPayload {
   role: string;
 }
 @Controller()
-export class AppController implements OnModuleInit {
+export class AppController {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private jwtService: JwtService,
     @Inject('NOTI_MICROSERVICE') private readonly gateWayClient: ClientKafka,
   ) {}
-
-  async onModuleInit() {
-    await this.gateWayClient.connect();
-    this.gateWayClient.subscribeToResponseOf('send_mail_msg');
-  }
 
   @MessagePattern('create_user')
   async handleUserCreate(@Payload() data: CreateUserDto) {
@@ -46,10 +41,7 @@ export class AppController implements OnModuleInit {
     const userDB = await this.userRepository.findOneBy({
       email: data.email,
     });
-    console.log('api->user');
-    this.gateWayClient.send('send_mail_msg', data);
-    this.gateWayClient.emit('send_mail', data);
-    if (userDB) {
+    if (userDB && userDB.password) {
       const passwordMatch = await bcrypt.compare(
         data.password,
         userDB.password,
@@ -105,16 +97,18 @@ export class AppController implements OnModuleInit {
   }
 
   @MessagePattern('login_with_google')
-  async handleLoginGoogle(@Payload() data: any) {
-    const userDB = await this.userRepository.findOneBy({ email: data.email });
+  async handleLoginGoogle(@Payload() email: string) {
+    const userDB = await this.userRepository.findOneBy({ email });
 
     let ggUser: User;
 
     if (userDB) {
       ggUser = userDB;
     } else {
-      data.role = 'user';
-      ggUser = await this.userRepository.save(data);
+      ggUser = await this.userRepository.save({
+        email,
+        role: 'user',
+      });
     }
 
     const payload = {
@@ -123,6 +117,10 @@ export class AppController implements OnModuleInit {
       role: ggUser.role,
     };
 
-    return { accessToken: await this.jwtService.signAsync(payload) };
+    return {
+      accessToken: await this.jwtService.signAsync(payload),
+      ...ggUser,
+      password: undefined,
+    };
   }
 }
