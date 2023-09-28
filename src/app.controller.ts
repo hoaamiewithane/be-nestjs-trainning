@@ -1,25 +1,26 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, HttpStatus, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ClientKafka, MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ClientKafka,
+  MessagePattern,
+  Payload,
+  RpcException,
+} from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
+import { NOTI_MICROSERVICE } from './constants';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { SignInUserDto } from './dto/sign-in-auth.dto';
 import { User } from './entities/user.entity';
 
-interface tokenPayload {
-  sub: number;
-  username: string;
-  role: string;
-}
 @Controller()
 export class AppController {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private jwtService: JwtService,
-    @Inject('NOTI_MICROSERVICE') private readonly gateWayClient: ClientKafka,
+    @Inject(NOTI_MICROSERVICE) private readonly gateWayClient: ClientKafka,
   ) {}
 
   @MessagePattern('create_user')
@@ -28,26 +29,26 @@ export class AppController {
       email: data.email,
     });
     if (isExist) {
-      return { message: 'Already have account' };
+      throw new RpcException({
+        statusCode: HttpStatus.CONFLICT,
+        message: 'Already have an account',
+      });
     }
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    data.password = hashedPassword;
+    data.password = await bcrypt.hash(data.password, 10);
     this.userRepository.save(data);
     this.gateWayClient.emit('send_mail', data);
     return { message: 'Successful' };
   }
+
   @MessagePattern('sign_in_user')
   async handleUserLogin(@Payload() data: SignInUserDto) {
     const userDB = await this.userRepository.findOneBy({
       email: data.email,
     });
-    if (userDB && userDB.password) {
-      const passwordMatch = await bcrypt.compare(
-        data.password,
-        userDB.password,
-      );
+    if (userDB?.password) {
+      const isPwdMatch = await bcrypt.compare(data.password, userDB.password);
 
-      if (passwordMatch) {
+      if (isPwdMatch) {
         const payload = {
           sub: userDB.id,
           email: userDB.email,
@@ -60,19 +61,23 @@ export class AppController {
           password: undefined,
         };
       }
-      return { message: 'Wrong password' };
+      throw new RpcException({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'Wrong password',
+      });
     }
-    return { message: 'User does not exist' };
+    throw new RpcException({
+      statusCode: HttpStatus.NOT_FOUND,
+      message: 'User does not exist',
+    });
   }
 
   @MessagePattern('get_me')
-  async handleGetMe(@Payload() token: string) {
-    const payload = this.jwtService.decode(token) as tokenPayload;
-    const userDB: Partial<User> | null = await this.userRepository.findOneBy({
-      id: payload.sub,
+  async handleGetMe(@Payload() email: string) {
+    const userDB = await this.userRepository.findOneBy({
+      email,
     });
-    delete userDB?.password;
-    return { data: userDB };
+    return { ...userDB, password: undefined };
   }
 
   @MessagePattern('find_all_user')
@@ -103,6 +108,12 @@ export class AppController {
     let ggUser: User;
 
     if (userDB) {
+      if (userDB.password) {
+        throw new RpcException({
+          statusCode: HttpStatus.UNAUTHORIZED,
+          message: 'Unauthorized',
+        });
+      }
       ggUser = userDB;
     } else {
       ggUser = await this.userRepository.save({
