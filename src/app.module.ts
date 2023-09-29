@@ -1,17 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Partitioners } from 'kafkajs';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { NOTI_MICROSERVICE } from './constants';
 import { User } from './entities/user.entity';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
     ClientsModule.register([
       {
-        name: 'NOTI_MICROSERVICE',
+        name: NOTI_MICROSERVICE,
         transport: Transport.KAFKA,
         options: {
           client: {
@@ -20,6 +22,9 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
           },
           consumer: {
             groupId: 'noti-consumer',
+          },
+          producer: {
+            createPartitioner: Partitioners.LegacyPartitioner,
           },
         },
       },

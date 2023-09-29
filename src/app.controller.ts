@@ -8,7 +8,7 @@ import {
 } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { NOTI_MICROSERVICE } from './constants';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { SignInUserDto } from './dto/sign-in-auth.dto';
@@ -80,14 +80,34 @@ export class AppController {
     return { ...userDB, password: undefined };
   }
 
-  @MessagePattern('find_all_user')
-  async findAll() {
-    const data = (await this.userRepository.find()) as Partial<User>[];
-    data?.map((user) => {
-      delete user.password;
-      return user;
+  @MessagePattern('list_user')
+  async findListUser(
+    @Payload()
+    {
+      limit,
+      offset,
+      searchTerm,
+    }: {
+      limit: number;
+      offset: number;
+      searchTerm?: string;
+    },
+  ) {
+    const data = await this.userRepository.find({
+      where: {
+        ...(searchTerm && { email: Like(`%${searchTerm}%`) }),
+      },
+      take: limit,
+      skip: offset,
     });
-    return { data };
+
+    return {
+      data: [...data].map((item) => ({
+        ...item,
+        password: undefined,
+      })),
+      count: data.length,
+    };
   }
 
   @MessagePattern('find_one_user')
