@@ -12,6 +12,7 @@ import { Like, Repository } from 'typeorm';
 import { NOTI_MICROSERVICE } from './constants';
 import { CreateUserDto } from './dto/create-auth.dto';
 import { SignInUserDto } from './dto/sign-in-auth.dto';
+import { Profile } from './entities/profile.entity';
 import { User } from './entities/user.entity';
 
 @Controller()
@@ -19,6 +20,8 @@ export class AppController {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Profile)
+    private readonly profileRepository: Repository<Profile>,
     private jwtService: JwtService,
     @Inject(NOTI_MICROSERVICE) private readonly gateWayClient: ClientKafka,
   ) {}
@@ -35,7 +38,7 @@ export class AppController {
       });
     }
     data.password = await bcrypt.hash(data.password, 10);
-    this.userRepository.save(data);
+    await this.userRepository.save(data);
     this.gateWayClient.emit('send_mail', data);
     return { message: 'Successful' };
   }
@@ -102,6 +105,7 @@ export class AppController {
       },
       take: limit,
       skip: offset,
+      relations: ['profile'],
     });
 
     const count = await this.userRepository.count({
@@ -122,12 +126,43 @@ export class AppController {
 
   @MessagePattern('find_one_user')
   async findOne(@Payload() id: number) {
-    const data = (await this.userRepository.findOneBy({
-      id,
+    const data = (await this.userRepository.findOne({
+      where: { id },
+      relations: {
+        profile: true,
+      },
     })) as Partial<User>;
     delete data.password;
     return {
       data,
+    };
+  }
+
+  @MessagePattern('edit_user')
+  async editUser(
+    @Payload()
+    { id, role, profile }: { id: number; role: string; profile: any },
+  ) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['profile'],
+    });
+    if (!user) {
+      throw new RpcException({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: `User with ID ${id} not found.`,
+      });
+    }
+    user.profile = await this.profileRepository.save({
+      ...(user?.profile && { ...user.profile }),
+      ...profile,
+    });
+    if (role) {
+      user.role = role;
+    }
+    const newUser = await this.userRepository.save(user);
+    return {
+      data: newUser,
     };
   }
 

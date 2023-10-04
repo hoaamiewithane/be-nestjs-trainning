@@ -7,6 +7,7 @@ import { Partitioners } from 'kafkajs';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NOTI_MICROSERVICE } from './constants';
+import { Profile } from './entities/profile.entity';
 import { User } from './entities/user.entity';
 
 @Module({
@@ -40,9 +41,9 @@ import { User } from './entities/user.entity';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
       synchronize: true,
-      entities: [User],
+      entities: [User, Profile],
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Profile]),
     JwtModule.register({
       global: true,
       secret: process.env.SECRECT_KEY,
