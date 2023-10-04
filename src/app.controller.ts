@@ -87,18 +87,28 @@ export class AppController {
       limit,
       offset,
       searchTerm,
+      role,
     }: {
       limit: number;
       offset: number;
       searchTerm?: string;
+      role?: 'admin' | 'user';
     },
   ) {
     const data = await this.userRepository.find({
       where: {
         ...(searchTerm && { email: Like(`%${searchTerm}%`) }),
+        role,
       },
       take: limit,
       skip: offset,
+    });
+
+    const count = await this.userRepository.count({
+      where: {
+        ...(searchTerm && { email: Like(`%${searchTerm}%`) }),
+        role,
+      },
     });
 
     return {
@@ -106,7 +116,7 @@ export class AppController {
         ...item,
         password: undefined,
       })),
-      count: data.length,
+      count,
     };
   }
 
