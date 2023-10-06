@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { NOTI_MICROSERVICE } from './constants';
 import { Profile } from './entities/profile.entity';
 import { User } from './entities/user.entity';
+import { Ship } from './entities/ship.entity';
 
 @Module({
   imports: [
@@ -36,17 +37,17 @@ import { User } from './entities/user.entity';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.HOST,
-      port: parseInt(process.env.DB_PORT as string),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
+      port: parseInt(process.env['DB_PORT'] as string),
+      username: process.env['DB_USERNAME'],
+      password: process.env['DB_PASSWORD'],
+      database: process.env['DB_DATABASE'],
       synchronize: true,
-      entities: [User, Profile],
+      entities: [User, Profile, Ship],
     }),
-    TypeOrmModule.forFeature([User, Profile]),
+    TypeOrmModule.forFeature([User, Ship, Profile]),
     JwtModule.register({
       global: true,
-      secret: process.env.SECRECT_KEY,
+      secret: process.env['SECRET_KEY'],
       signOptions: { expiresIn: 3600 * 24 },
     }),
   ],

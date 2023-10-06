@@ -105,7 +105,7 @@ export class AppController {
       },
       take: limit,
       skip: offset,
-      relations: ['profile'],
+      relations: ['profile', 'ships'],
     });
 
     const count = await this.userRepository.count({
@@ -133,9 +133,7 @@ export class AppController {
       },
     })) as Partial<User>;
     delete data.password;
-    return {
-      data,
-    };
+    return { ...data };
   }
 
   @MessagePattern('edit_user')
@@ -161,9 +159,7 @@ export class AppController {
       user.role = role;
     }
     const newUser = await this.userRepository.save(user);
-    return {
-      data: newUser,
-    };
+    return { ...newUser };
   }
 
   @MessagePattern('login_with_google')

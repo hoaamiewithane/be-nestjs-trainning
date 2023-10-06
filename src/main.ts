@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { Transport, MicroserviceOptions } from '@nestjs/microservices';
-import { AppModule } from './app.module';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Partitioners } from 'kafkajs';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -10,7 +10,7 @@ async function bootstrap() {
       transport: Transport.KAFKA,
       options: {
         client: {
-          brokers: [process.env.BROKER_URL as string],
+          brokers: [process.env['BROKER_URL'] as string],
         },
         consumer: {
           groupId: 'auth-consumer',
@@ -23,4 +23,7 @@ async function bootstrap() {
   );
   await app.listen();
 }
-bootstrap();
+
+bootstrap().then(() => {
+  console.log('User-service started');
+});
