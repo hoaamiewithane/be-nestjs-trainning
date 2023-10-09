@@ -105,7 +105,7 @@ export class AppController {
       },
       take: limit,
       skip: offset,
-      relations: ['profile', 'ships'],
+      relations: ['profile'],
     });
 
     const count = await this.userRepository.count({

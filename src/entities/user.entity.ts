@@ -3,13 +3,10 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Profile } from './profile.entity';
-import { Ship } from './ship.entity';
 
 @Entity('user')
 export class User extends BaseEntity {
@@ -26,8 +23,4 @@ export class User extends BaseEntity {
   @OneToOne(() => Profile)
   @JoinColumn()
   profile: Profile;
-
-  @ManyToMany(() => Ship, (ship) => ship.users)
-  @JoinTable()
-  ships: Ship[];
 }

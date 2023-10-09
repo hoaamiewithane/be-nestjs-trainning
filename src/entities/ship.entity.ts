@@ -17,7 +17,7 @@ export class Ship extends BaseEntity {
   @Column()
   maxWeight: number;
 
-  @ManyToMany(() => User, (user) => user.ships)
+  @ManyToMany(() => User)
   @JoinTable()
   users: User[];
 }
