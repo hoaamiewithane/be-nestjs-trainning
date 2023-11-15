@@ -18,6 +18,11 @@ export class AuthController {
     return this.authService.signIn(signInUserDto);
   }
 
+  @MessagePattern('refresh_token')
+  refreshToken(@Payload() tokenDto: string) {
+    return this.authService.refreshToken(tokenDto);
+  }
+
   @MessagePattern('login_with_google')
   signInGoogle(@Payload() email: string) {
     return this.authService.signInGoogle(email);

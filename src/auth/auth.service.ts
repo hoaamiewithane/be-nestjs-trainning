@@ -52,7 +52,8 @@ export class AuthService {
         };
 
         return {
-          accessToken: await this.jwtService.signAsync(payload),
+          accessToken: this.jwtService.sign(payload),
+          refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
           ...userDB,
           password: undefined,
         };
@@ -66,6 +67,17 @@ export class AuthService {
       statusCode: HttpStatus.NOT_FOUND,
       message: 'User does not exist',
     });
+  }
+
+  async refreshToken(token: string) {
+    const decoded = this.jwtService.verify(token);
+    const payload = {
+      sub: decoded.sub,
+      email: decoded.email,
+      role: decoded.role,
+    };
+    const accessToken = this.jwtService.sign(payload);
+    return { accessToken };
   }
 
   async signInGoogle(email: string) {
