@@ -5,7 +5,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Partitioners } from 'kafkajs';
 import { NOTI_MICROSERVICE } from 'src/constants';
 import { Profile } from 'src/entities/profile.entity';
-import { Ship } from 'src/entities/ship.entity';
 import { User } from 'src/entities/user.entity';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
@@ -41,9 +40,9 @@ import { UserService } from './user.service';
       password: process.env['DB_PASSWORD'],
       database: process.env['DB_DATABASE'],
       synchronize: true,
-      entities: [User, Profile, Ship],
+      entities: [User, Profile],
     }),
-    TypeOrmModule.forFeature([User, Ship, Profile]),
+    TypeOrmModule.forFeature([User, Profile]),
   ],
   controllers: [UserController],
   providers: [UserService],

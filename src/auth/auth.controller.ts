@@ -8,7 +8,7 @@ import { SignInUserDto } from './dto/sign-in-auth.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @MessagePattern('create_user')
+  @MessagePattern({ cmd: 'create_user' })
   create(@Payload() createAuthDto: CreateAuthDto) {
     return this.authService.create(createAuthDto);
   }

@@ -6,7 +6,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Partitioners } from 'kafkajs';
 import { NOTI_MICROSERVICE } from 'src/constants';
 import { Profile } from 'src/entities/profile.entity';
-import { Ship } from 'src/entities/ship.entity';
 import { User } from 'src/entities/user.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -23,7 +22,7 @@ import { AuthService } from './auth.service';
         options: {
           client: {
             clientId: 'user-service',
-            brokers: [`localhost:9092`],
+            brokers: [process.env['BROKER_URL'] as string],
           },
           consumer: {
             groupId: 'noti-consumer',
@@ -42,13 +41,13 @@ import { AuthService } from './auth.service';
       password: process.env['DB_PASSWORD'],
       database: process.env['DB_DATABASE'],
       synchronize: true,
-      entities: [User, Profile, Ship],
+      entities: [User, Profile],
     }),
-    TypeOrmModule.forFeature([User, Ship, Profile]),
+    TypeOrmModule.forFeature([User, Profile]),
     JwtModule.register({
       global: true,
       secret: process.env['SECRET_KEY'],
-      signOptions: { expiresIn: 10 },
+      signOptions: { expiresIn: '1d' },
     }),
   ],
   controllers: [AuthController],
